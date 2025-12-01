@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ----------------------------------------------------------
-# CONFIG
+# PAGE CONFIG
 # ----------------------------------------------------------
 st.set_page_config(
     page_title="Chexy – Growth & Activation Dashboard",
@@ -10,36 +10,46 @@ st.set_page_config(
     page_icon="📈"
 )
 
-# Your Google Sheet (CSV Export)
-CSV_URL = "https://docs.google.com/spreadsheets/d/1V9ymJKvgccVr6z_EvLBx7XBoSVnGgrw8xIVnS_uex5Y/export?format=csv&gid=1997349262"
+st.title("📈 Chexy – Growth & Activation Dashboard")
+st.caption("Data Source: Google Sheets → CSV Export → Streamlit Cloud")
 
+
+# ----------------------------------------------------------
+# DATA SOURCE (Google Sheet CSV Export – Lightweight & Fast)
+# ----------------------------------------------------------
+CSV_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1V9ymJKvgccVr6z_EvLBx7XBoSVnGgrw8xIVnS_uex5Y/"
+    "export?format=csv&gid=1997349262"
+)
 
 # ----------------------------------------------------------
 # LOAD DATA
 # ----------------------------------------------------------
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300)   # refresh every 5 minutes
 def load_data():
     df = pd.read_csv(CSV_URL)
     return df
 
 df = load_data()
 
-st.title("📈 Chexy – Active Users, New Accounts & Activations Dashboard")
-st.caption("Data Source: Google Sheets → BigQuery Connected Query")
 
-# Segment selection
-segment = st.sidebar.selectbox("User Segment", df["segment"].unique())
+# ----------------------------------------------------------
+# SIDEBAR – Segment Selector
+# ----------------------------------------------------------
+segment = st.sidebar.selectbox("Select User Segment", df["segment"].unique())
 row = df[df["segment"] == segment].iloc[0]
 
 
 # ----------------------------------------------------------
-# KPI FUNCTION
+# METRIC CARD FUNCTION
 # ----------------------------------------------------------
-def metric_card(title, value, abs_change, pct_change):
-    delta_text = None
+def metric_card(label, value, abs_change, pct_change):
+    """Reusable KPI metric box with delta formatting."""
+    delta = None
     if pct_change is not None and not pd.isna(pct_change):
-        delta_text = f"{abs_change:+} ({pct_change:.1f}%)"
-    st.metric(title, value, delta_text)
+        delta = f"{abs_change:+} ({pct_change:.1f}%)"
+    st.metric(label, value, delta)
 
 
 # ----------------------------------------------------------
@@ -48,6 +58,7 @@ def metric_card(title, value, abs_change, pct_change):
 st.subheader("👥 Active Users (Rolling Windows)")
 
 col1, col2, col3 = st.columns(3)
+
 with col1:
     metric_card(
         "Active Users (30d)",
@@ -55,6 +66,7 @@ with col1:
         row["active_users_30d_abs_change"],
         row["active_users_30d_pct_change"]
     )
+
 with col2:
     metric_card(
         "Active Users (60d)",
@@ -62,6 +74,7 @@ with col2:
         row["active_users_60d_abs_change"],
         row["active_users_60d_pct_change"]
     )
+
 with col3:
     metric_card(
         "Active Users (90d)",
@@ -77,6 +90,7 @@ with col3:
 st.subheader("🆕 New Accounts")
 
 col4, col5, col6 = st.columns(3)
+
 with col4:
     metric_card(
         "New Accounts (Today)",
@@ -135,7 +149,7 @@ with col9:
 
 
 # ----------------------------------------------------------
-# RAW TABLE
+# RAW DATA TABLE
 # ----------------------------------------------------------
 st.subheader("📄 Raw KPI Data (Filtered)")
-st.dataframe(df[df["segment"] == segment])
+st.dataframe(df[df["segment"] == segment], use_container_width=True)
